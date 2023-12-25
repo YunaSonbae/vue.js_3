@@ -22,38 +22,71 @@ Vue.component('cards-kanban', {
         }
     },
     methods:{
-
+        handleUpdateDate(card) {
+            // Обработка обновления данных при изменении даты
+            console.log('Дата обновлена', card);
+            // В этом месте вы можете выполнить необходимые операции с данными
+        }
     },
     mounted() {
+        if ((JSON.parse(localStorage.getItem("column1")) != null)){
+            this.column1 = JSON.parse(localStorage.getItem("column1"))
+        }
+        if ((JSON.parse(localStorage.getItem("column2")) != null)){
+            this.column2 = JSON.parse(localStorage.getItem("column2"))
+        }
+        if ((JSON.parse(localStorage.getItem("column3")) != null)){
+            this.column3 = JSON.parse(localStorage.getItem("column3"))
+        }
+        if ((JSON.parse(localStorage.getItem("column4")) != null)){
+            this.column4 = JSON.parse(localStorage.getItem("column4"))
+        }
         eventBus.$on('card-create', card => {
             this.column1.push(card)
-        })
-        eventBus.$on('moving1', card => {
-            this.column2.push(card)
-            this.column1.splice(this.column1.indexOf(card), 1)
+            localStorage.setItem("column1", JSON.stringify(this.column1))
 
         })
+        eventBus.$on('moving1', card => {
+            JSON.parse(localStorage.getItem("column1"))
+            this.column2.push(card)
+            this.column1.splice(this.column1.indexOf(card), 1)
+            localStorage.setItem("column2", JSON.stringify(this.column2))
+            localStorage.setItem("column1", JSON.stringify(this.column1))
+        })
         eventBus.$on('moving2', card => {
+            JSON.parse(localStorage.getItem("column2"))
             this.column3.push(card)
             this.column2.splice(this.column2.indexOf(card), 1)
+            localStorage.setItem("column2", JSON.stringify(this.column2))
+            localStorage.setItem("column3", JSON.stringify(this.column3))
+
         })
 
         eventBus.$on('moving3-2', card => {
+            JSON.parse(localStorage.getItem("column2"))
+            JSON.parse(localStorage.getItem("column3"))
             this.column2.push(card)
             this.column3.splice(this.column3.indexOf(card), 1)
             card.dateE = new Date().toLocaleDateString()
+            localStorage.setItem("column2", JSON.stringify(this.column2))
+            localStorage.setItem("column3", JSON.stringify(this.column3))
         })
 
         eventBus.$on('moving3-4', card => {
+            JSON.parse(localStorage.getItem("column3"))
             this.column4.push(card)
             this.column3.splice(this.column3.indexOf(card), 1)
             card.dateE = new Date().toLocaleDateString()
             card.dateE = card.dateE.split('.').reverse().join('-')
-            console.log(card)
             if (card.dateE > card.dateD){
                 card.inTime = false
             }
+
+            localStorage.setItem("column3", JSON.stringify(this.column3))
+            localStorage.setItem("column4", JSON.stringify(this.column4))
         })
+        eventBus.$on('updateDate', this.handleUpdateDate);
+
     }
 })
 
@@ -61,62 +94,80 @@ Vue.component('fill', {
     template:`
     <div>
     <div>
-        <button class="button1" v-if="!show" @click="openModal">Добавьте задачу</button>
-        <div id="form" v-if="show" class="modal-shadow">
-            <div class="modal">
-                <div class="modal-close" @click="closeModal">&#10006;</div>
-                <h3>Заполните карточку задачи</h3>
-                <form @submit.prevent="onSubmit">
-                    <p class="pForm">Заголовок: 
-                        <input required type="text" v-model="title" maxlength="30" placeholder="Заголовок">
-                    </p>
-                    <p class="pForm">Описание задаче:</p>
-                    <textarea v-model="description" cols="40" rows="4"></textarea>
-                    <p class="pForm">Срок выполнения задачи: 
-                        <input required type="date" v-model="dateD">
-                    </p>
-                    <p class="pForm">
-                        <input class="button" type="submit" value="Добавить задачу">
-                    </p>
-                </form>
-            </div>
-        </div>    
+      <button class="button1" v-if="!show" @click="openModal">Добавьте задачу</button>
+      <div id="form" v-if="show" class="modal-shadow">
+        <div class="modal">
+          <div class="modal-close" @click="closeModal">&#10006;</div>
+          <h3>Заполните карточку задачи</h3>
+          <form @submit.prevent="onSubmit">
+            <p class="pForm">Введите заголовок:
+              <input required type="text" v-model="title" maxlength="30" placeholder="Заголовок">
+            </p>
+            <p class="pForm">Добавьте описание задаче:</p>
+            <textarea required v-model="description" cols="40" rows="4"></textarea>
+             <p class="pForm">Выберите роль:
+                            <select v-model="role">
+                                <option value="бек">Бекенд</option>
+                                <option value="фронт">Фронтенд</option>
+                                <option value="дизайнер">Дизайнер</option>
+                            </select>
+                        </p>
+            <p class="pForm">Укажите срок выполнения задачи:
+              <input required type="date" v-model="dateD" @input="onDateInput">
+            </p>
+<!--            <p class="pForm">-->
+<!--              <input class="button" type="submit" value="Добавить задачу">-->
+<!--            </p>-->
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
     `,
-    data(){
+    data() {
         return {
             title: null,
+            role: null,
             description: null,
             dateD: null,
             show: false
-        }
+        };
     },
     methods: {
         onSubmit() {
             let card = {
                 title: this.title,
                 description: this.description,
-                dateD: this.dateD,                  //DateDEADLINE
-                dateC: new Date().toLocaleString(),   //DataCreate
+                dateD: this.dateD, //DateDEADLINE
+                dateC: new Date().toLocaleString(), //DataCreate
                 updateCard: false,
-                dateL: null,                            //DateLAST
-                dateE: null,                            //DataEND
-                inTime: true,                            //IN TIME
+                dateL: null, //DateLAST
+                dateE: null, //DataEND
+                inTime: true, //IN TIME
+                role: this.role,
                 reason: []
-            }
-            eventBus.$emit('card-create', card)
-            this.title = null
-            this.description = null
-            this.dateD = null
-            this.closeModal()
-            console.log(card)
+            };
+            eventBus.$emit('card-create', card);
+            this.title = null;
+            this.description = null;
+            this.dateD = null;
+            this.role = null;
+            this.closeModal();
+            console.log(card);
         },
-        closeModal(){
-            this.show = false
+        closeModal() {
+            this.show = false;
         },
-        openModal(){
-            this.show = true
+        openModal() {
+            this.show = true;
+        },
+        onDateInput() {
+            // Вызывается при вводе даты, здесь можно добавить логику для закрытия модального окна
+            this.onSubmit();
+            // Закрываем модальное окно
+            this.closeModal();
         }
+
     }
 })
 
@@ -138,6 +189,7 @@ Vue.component('column1', {
             <ul>
                 <li class="title"><b>Заголовок:</b> {{ card.title }}</li>
                 <li><b>Описание задачи:</b> {{ card.description }}</li>
+                <li><b>Роль:</b> {{ card.role }}</li>
                 <li><b>Дата дедлайна:</b> {{ card.dateD }}</li>
                 <li><b>Дата создания:</b> {{ card.dateC }}</li>
                 <li v-if="card.dateL"><b>Дата последних изменений</b>{{ card.dateL }}</li>
@@ -166,16 +218,19 @@ Vue.component('column1', {
     `,
     methods: {
         deleteCard(card){
+            JSON.parse(localStorage.getItem("column1"))
             this.column1.splice(this.column1.indexOf(card), 1)
-        },
+            localStorage.setItem("column1", JSON.stringify(this.column1))        },
         updateC(card){
             card.updateCard = true
             console.log(card.updateCard)
         },
         updateTask(card){
+            JSON.parse(localStorage.getItem("column1"))
             this.column1.push(card)
             this.column1.splice(this.column1.indexOf(card), 1)
             card.dateL = new Date().toLocaleString()
+            localStorage.setItem("column1", JSON.stringify(this.column1))
             return card.updateCard = false
         },
         moving(card){
@@ -206,6 +261,7 @@ Vue.component('column2', {
             <ul>
                  <li class="title"><b>Заголовок:</b> {{ card.title }}</li>
                 <li><b>Описание задачи:</b> {{ card.description }}</li>
+                <li><b>Роль:</b> {{ card.role }}</li>
                 <li><b>Дата дедлайна:</b> {{ card.dateD }}</li>
                 <li><b>Дата создания:</b> {{ card.dateC }}</li>
                 <li v-if="card.dateL"><b>Дата последних изменений</b>{{ card.dateL }}</li>
@@ -219,9 +275,10 @@ Vue.component('column2', {
                         <p>Добавьте описание задаче: 
                             <textarea v-model="card.description" cols="20" rows="5"></textarea>
                         </p>
-                        <p>Укажите дату дедлайна: 
-                            <input type="date" v-model="card.dateD">
+                        <p class="pForm">Укажите дату дедлайна:
+                           <input required type="date" v-model="card.dateD" @input="onDateInput(card)">
                         </p>
+                        
                         <p>
                             <input class="button" type="submit" value="Изменить карточку">
                         </p>
@@ -239,13 +296,22 @@ Vue.component('column2', {
             console.log(card.updateCard)
         },
         updateTask(card){
+            JSON.parse(localStorage.getItem("column2"))
             this.column2.push(card)
             this.column2.splice(this.column2.indexOf(card), 1)
             card.dateL = new Date().toLocaleString()
+            localStorage.setItem("column2", JSON.stringify(this.column2))
             return card.updateCard = false
         },
         moving(card){
             eventBus.$emit('moving2', card)
+        },
+        onDateInput(card) {
+            card.updateCard = true
+            // Вызывается при вводе даты, здесь можно добавить логику для закрытия модального окна
+            this.onSubmit();
+            // Закрываем модальное окно
+            this.closeModal();
         }
     },
 })
@@ -273,6 +339,7 @@ Vue.component('column3', {
             <ul>
                 <li class="title"><b>Заголовок:</b> {{ card.title }}</li>
                 <li><b>Описание задачи:</b> {{ card.description }}</li>
+                <li><b>Роль:</b> {{ card.role }}</li>
                 <li><b>Дата дедлайна:</b> {{ card.dateD }}</li>
                 <li><b>Дата создания:</b> {{ card.dateC }}</li>
                 <li v-if="card.dateL"><b>Дата последних изменений: </b>{{ card.dateL }}</li>
@@ -293,8 +360,7 @@ Vue.component('column3', {
                             <textarea v-model="card.description" cols="20" rows="5"></textarea>
                         </p>
                         <p>Укажите дату дедлайна: 
-                            <input type="date" v-model="card.dateD">
-                        </p>
+                              <input required type="date" v-model="card.dateD" @input="onDateInput(card)">                        </p>
                         <p>
                               <input class="button" type="submit" value="Изменить карточку">
                         </p>
@@ -319,9 +385,11 @@ Vue.component('column3', {
             console.log(card.updateCard)
         },
         updateTask(card){
+            JSON.parse(localStorage.getItem("column3"))
             this.column3.push(card)
             this.column3.splice(this.column3.indexOf(card), 1)
             card.dateL = new Date().toLocaleString()
+            localStorage.setItem("column3", JSON.stringify(this.column3))
             return card.updateCard = false
         },
         moving(card){
@@ -357,6 +425,7 @@ Vue.component('column4', {
             <ul>
                  <li class="title"><b>Заголовок:</b> {{ card.title }}</li>
                 <li><b>Описание задачи:</b> {{ card.description }}</li>
+                <li><b>Роль:</b> {{ card.role }}</li>
                 <li><b>Дата создания:</b> {{ card.dateC }}</li>
                 <li><b>Дата выполнения:</b> {{ card.dateC }}</li>
                 <li><b>Дата дедлайна:</b> {{ card.dateD }}</li>
